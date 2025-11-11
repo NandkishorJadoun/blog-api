@@ -1,4 +1,6 @@
 const prisma = require("../configs/prisma");
+const CustomNotFoundError = require("../errors/CustomNotFoundError");
+const CustomForbiddenError = require("../errors/CustomForbiddenError");
 
 const getPosts = async (req, res) => {
   const posts = await prisma.post.findMany();
@@ -10,38 +12,43 @@ const getPostById = async (req, res) => {
   const post = await prisma.post.findUnique({
     where: { id: Number(postId) },
   });
+
+  if (!post) {
+    throw new CustomNotFoundError(`Post with ID ${postId} not found`);
+  }
+
   res.json({ message: "Fetched The Post Successfully", data: post });
 };
 
 const getCommentsByPostId = async (req, res) => {
   const { postId } = req.params;
-  const comments = await prisma.comment.findMany({
-    where: { postId: Number(postId) },
-  });
-  res.json({ message: "Fetched all comments on the post", data: comments });
-};
-
-const deletePostById = async (req, res) => {
-  const { postId } = req.params;
-  await prisma.post.delete({
+  const post = await prisma.post.findUnique({
     where: { id: Number(postId) },
+    select: { comments: true },
   });
-  res.json({ message: "Post deleted successfully" });
+
+  if (!post) {
+    throw new CustomNotFoundError(`Post with ID ${postId} not found`);
+  }
+
+  res.json({
+    message: "Fetched all comments on the post",
+    data: post.comments,
+  });
 };
 
 // Add Validation for creating post
 
 const createNewPost = async (req, res) => {
-  const { title, content, authorId } = req.body;
-
-  // I'll use this to get the author id
-  // const { id } = req.user;
+  const { title, content, status } = req.body;
+  const { id } = req.user;
 
   const post = await prisma.post.create({
     data: {
       title,
       content,
-      authorId,
+      status,
+      authorId: id,
     },
   });
 
@@ -51,34 +58,66 @@ const createNewPost = async (req, res) => {
   });
 };
 
-// currently I am using post id for updating, i have no idea if other authenticated user can update as well.
-// if they can, i'll use req.user.id as well for extra security
-
 const updatePostById = async (req, res) => {
   const { postId } = req.params;
   const { title, content, status } = req.body;
+  const { id } = req.user;
+
+  const existingPost = await prisma.post.findUnique({
+    where: {
+      id: Number(postId),
+    },
+  });
+
+  if (!existingPost) {
+    throw new CustomNotFoundError(`Post with ID ${postId} not found`);
+  }
+
+  if (existingPost.authorId !== id) {
+    throw new CustomForbiddenError("You are forbidden from updating this post");
+  }
 
   const post = await prisma.post.update({
     where: { id: Number(postId) },
     data: { title, content, status },
   });
 
-  res.json({
-    message: "Post update Successfully",
-    post,
-  });
+  res.json({ message: "Post update Successfully", post });
 };
 
-// currently getting author id through req body but after auth, you have to change that
+const deletePostById = async (req, res) => {
+  const { postId } = req.params;
+  const { id } = req.user;
+
+  const existingPost = await prisma.post.findUnique({
+    where: {
+      id: Number(postId),
+    },
+  });
+
+  if (!existingPost) {
+    throw new CustomNotFoundError(`Post with ID ${postId} not found`);
+  }
+
+  if (existingPost.authorId !== id) {
+    throw new CustomForbiddenError("You are forbidden from deleting this post");
+  }
+
+  await prisma.post.delete({
+    where: { id: Number(postId) },
+  });
+  res.json({ message: "Post deleted successfully" });
+};
 
 const createNewComment = async (req, res) => {
   const { postId } = req.params;
-  const { content, authorId } = req.body;
+  const { content } = req.body;
+  const { id } = req.user;
   const comment = await prisma.comment.create({
     data: {
-      postId: Number(postId),
       content,
-      authorId,
+      authorId: id,
+      postId: Number(postId),
     },
   });
 
@@ -88,6 +127,22 @@ const createNewComment = async (req, res) => {
 const updateCommentOnPost = async (req, res) => {
   const { postId, commentId } = req.params;
   const { content } = req.body;
+  const { id } = req.user;
+
+  const existingComment = await prisma.comment.findUnique({
+    where: { id: Number(commentId) },
+  });
+
+  if (!existingComment) {
+    throw new CustomNotFoundError(`Comment with ID ${commentId} not found`);
+  }
+
+  if (existingComment.authorId !== id) {
+    throw new CustomForbiddenError(
+      "You are forbidden from updating this comment",
+    );
+  }
+
   const comment = await prisma.comment.update({
     where: {
       id: Number(commentId),
@@ -101,6 +156,26 @@ const updateCommentOnPost = async (req, res) => {
 
 const deleteCommentOnPost = async (req, res) => {
   const { postId, commentId } = req.params;
+  const { id } = req.user;
+
+  const existingComment = await prisma.comment.findUnique({
+    where: { id: Number(commentId) },
+    include: { post: true },
+  });
+
+  if (!existingComment) {
+    throw new CustomNotFoundError(`Comment with ID ${commentId} not found`);
+  }
+
+  const commentAuthor = existingComment.authorId;
+  const postAuthor = existingComment.post.authorId;
+
+  if (id !== commentAuthor && id !== postAuthor) {
+    throw new CustomForbiddenError(
+      "You are forbidden from deleting this comment",
+    );
+  }
+
   const comment = await prisma.comment.delete({
     where: {
       id: Number(commentId),
@@ -108,7 +183,10 @@ const deleteCommentOnPost = async (req, res) => {
     },
   });
 
-  res.json({ message: "Comment Deleted Successfully", data: comment });
+  res.json({
+    message: "Comment Deleted Successfully",
+    data: comment,
+  });
 };
 
 module.exports = {
