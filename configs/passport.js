@@ -1,13 +1,11 @@
+require("dotenv").config();
 const prisma = require("./prisma");
 const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
+const bcrypt = require("bcryptjs");
 const passportJWT = require("passport-jwt");
 const JWTStrategy = passportJWT.Strategy;
 const ExtractJWT = passportJWT.ExtractJwt;
-require("dotenv").config();
-
-// gotta refactor this after adding bcrypt for hashing pw.
-// then it can return errors for
+const LocalStrategy = require("passport-local").Strategy;
 
 passport.use(
   new LocalStrategy(
@@ -17,11 +15,23 @@ passport.use(
     },
     async (email, password, cb) => {
       const user = await prisma.user.findUnique({
-        where: { email, password },
+        where: { email },
       });
+
       if (!user) {
-        return cb(null, false, { message: "Incorrect Email or Password" });
+        return cb(null, false, {
+          message: "Incorrect email.",
+        });
       }
+
+      const match = await bcrypt.compare(password, user.password);
+
+      if (!match) {
+        return cb(null, false, {
+          message: "Invalid password.",
+        });
+      }
+
       return cb(null, user, { message: "Logged in successfully" });
     },
   ),

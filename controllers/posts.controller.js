@@ -1,16 +1,32 @@
 const prisma = require("../configs/prisma");
 const CustomNotFoundError = require("../errors/CustomNotFoundError");
 const CustomForbiddenError = require("../errors/CustomForbiddenError");
+const validate = require("../middlewares/validator");
+const { validationResult, matchedData } = require("express-validator");
 
 const getPosts = async (req, res) => {
-  const posts = await prisma.post.findMany();
+  const posts = await prisma.post.findMany({
+    where: {
+      status: "PUBLIC",
+    },
+  });
   res.json({ message: "Fetched Posts Successfully", data: posts });
 };
 
 const getPostById = async (req, res) => {
   const { postId } = req.params;
   const post = await prisma.post.findUnique({
-    where: { id: Number(postId) },
+    where: { id: Number(postId), status: "PUBLIC" },
+    include: {
+      author: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+        },
+      },
+    },
   });
 
   if (!post) {
@@ -109,20 +125,29 @@ const deletePostById = async (req, res) => {
   res.json({ message: "Post deleted successfully" });
 };
 
-const createNewComment = async (req, res) => {
-  const { postId } = req.params;
-  const { content } = req.body;
-  const { id } = req.user;
-  const comment = await prisma.comment.create({
-    data: {
-      content,
-      authorId: id,
-      postId: Number(postId),
-    },
-  });
+const createNewComment = [
+  validate.comment,
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        errors: errors.array(),
+      });
+    }
+    const { postId } = req.params;
+    const { id } = req.user;
+    const { content } = matchedData(req);
+    const comment = await prisma.comment.create({
+      data: {
+        content,
+        authorId: id,
+        postId: Number(postId),
+      },
+    });
 
-  res.json({ message: "Created Comment Successfully", data: comment });
-};
+    res.json({ message: "Created Comment Successfully", data: comment });
+  },
+];
 
 const updateCommentOnPost = async (req, res) => {
   const { postId, commentId } = req.params;
