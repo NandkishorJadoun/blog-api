@@ -1,23 +1,45 @@
-const prisma = require("../configs/prisma");
-const jwt = require("jsonwebtoken");
-const passport = require("../configs/passport");
 require("dotenv").config();
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const prisma = require("../configs/prisma");
+const passport = require("../configs/passport");
+const validate = require("../middlewares/validator");
+const CustomNotFoundError = require("../errors/CustomNotFoundError");
+const { validationResult, matchedData } = require("express-validator");
 
-// add validation and hashing through bcrypt later
-const postSignUpUser = async (req, res) => {
-  const { name, email, password } = req.body;
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password,
-    },
-  });
-  res.json({
-    message: "User created successfully",
-    data: user,
-  });
-};
+const postSignUpUser = [
+  validate.signUp,
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        errors: errors.array(),
+      });
+    }
+
+    const { firstName, lastName, email, password } = matchedData(req);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    if (!hashedPassword) {
+      throw new CustomNotFoundError("Hashed Password not found");
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+      },
+    });
+
+    res.json({
+      message: "User created successfully",
+      data: user,
+    });
+  },
+];
 
 const postLogin = async (req, res) => {
   passport.authenticate("local", { session: false }, (err, user, info) => {
