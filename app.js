@@ -1,10 +1,14 @@
 const express = require("express");
 const { json, urlencoded } = require("express");
 const routes = require("./routes/index");
+const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
 
+const corsOptions = { origin: "http://localhost:5173" };
+
+app.use(cors(corsOptions));
 app.use(json());
 app.use(urlencoded({ extended: true }));
 
