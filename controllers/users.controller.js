@@ -7,6 +7,12 @@ const getUserById = async (req, res) => {
     where: {
       id: Number(id),
     },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      role: true,
+    },
   });
 
   if (!user) {
@@ -20,7 +26,13 @@ const getUserPosts = async (req, res) => {
   const { id } = req.params;
   const user = await prisma.user.findUnique({
     where: { id: Number(id) },
-    select: { posts: true },
+    select: {
+      posts: {
+        where: {
+          status: "PUBLIC",
+        },
+      },
+    },
   });
 
   if (!user) {
