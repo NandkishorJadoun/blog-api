@@ -31,6 +31,7 @@ const getUserPosts = async (req, res) => {
         where: {
           status: "PUBLIC",
         },
+        select: { id: true, title: true, createdAt: true },
       },
     },
   });
@@ -49,7 +50,21 @@ const getUserComments = async (req, res) => {
   const { id } = req.params;
   const user = await prisma.user.findUnique({
     where: { id: Number(id) },
-    select: { comments: true },
+    select: {
+      comments: {
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          post: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!user) {
