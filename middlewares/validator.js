@@ -57,7 +57,35 @@ const comment = [
     .withMessage("Comment must be within 1000 character."),
 ];
 
+const post = [
+  body("title")
+    .trim()
+    .notEmpty()
+    .withMessage(" Title shouldn't be empty.")
+    .isLength({ min: 10, max: 120 })
+    .withMessage("Title must be between 10 and 120 characters."),
+
+  body("content").custom((content) => {
+    const wordCount = content
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ").length;
+
+    if (wordCount < 120) {
+      throw new Error("Post must contain at least 120 words");
+    }
+
+    if (wordCount > 1500) {
+      throw new Error("Post must contain less than 1500 words");
+    }
+
+    return true;
+  }),
+];
+
 module.exports = {
   signUp,
   comment,
+  post,
 };
