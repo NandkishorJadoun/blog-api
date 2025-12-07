@@ -25,8 +25,8 @@ model Post {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt()
   status    Status    @default(PRIVATE)
-  title     String    @db.VarChar(255)
-  content   String    @db.VarChar(255)
+  title     String    @db.VarChar(120)
+  content   String
   comments  Comment[]
   author    User?     @relation(fields: [authorId], references: [id])
   authorId  Int?
@@ -38,7 +38,7 @@ model Comment {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  content   String   @db.VarChar(255)
+  content   String   
   author    User?    @relation(fields: [authorId], references: [id])
   authorId  Int?
   post      Post?    @relation(fields: [postId], references: [id])
