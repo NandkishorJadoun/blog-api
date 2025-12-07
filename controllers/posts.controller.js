@@ -4,10 +4,22 @@ const CustomForbiddenError = require("../errors/CustomForbiddenError");
 const validate = require("../middlewares/validator");
 const { validationResult, matchedData } = require("express-validator");
 
-const getPosts = async (req, res) => {
+const getPosts = async (_req, res) => {
   const posts = await prisma.post.findMany({
     where: {
       status: "PUBLIC",
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      title: true,
+      authorId: true,
+      author: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
     },
   });
   res.json({ message: "Fetched Posts Successfully", data: posts });
@@ -16,7 +28,7 @@ const getPosts = async (req, res) => {
 const getPostById = async (req, res) => {
   const { postId } = req.params;
   const post = await prisma.post.findUnique({
-    where: { id: Number(postId), status: "PUBLIC" },
+    where: { id: Number(postId) },
     include: {
       author: {
         select: {
@@ -40,7 +52,18 @@ const getCommentsByPostId = async (req, res) => {
   const { postId } = req.params;
   const post = await prisma.post.findUnique({
     where: { id: Number(postId) },
-    select: { comments: true },
+    include: {
+      comments: {
+        include: {
+          author: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!post) {
@@ -53,53 +76,86 @@ const getCommentsByPostId = async (req, res) => {
   });
 };
 
-// Add Validation for creating post
-
-const createNewPost = async (req, res) => {
-  const { title, content, status } = req.body;
+const getAuthorPosts = async (req, res) => {
   const { id } = req.user;
+  const { type } = req.query;
 
-  const post = await prisma.post.create({
-    data: {
-      title,
-      content,
-      status,
-      authorId: id,
+  const posts = await prisma.post.findMany({
+    where: { status: type, authorId: id },
+    select: {
+      id: true,
+      title: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
-  res.status(201).json({
-    message: "Post created successfully",
-    post,
-  });
+  res.json({ message: `Fetched All ${type} Posts Successfully`, data: posts });
 };
 
-const updatePostById = async (req, res) => {
-  const { postId } = req.params;
-  const { title, content, status } = req.body;
-  const { id } = req.user;
+const createNewPost = [
+  validate.post,
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const { title, content } = matchedData(req);
+    const { status } = req.body;
+    const { id } = req.user;
 
-  const existingPost = await prisma.post.findUnique({
-    where: {
-      id: Number(postId),
-    },
-  });
+    const post = await prisma.post.create({
+      data: {
+        title,
+        content,
+        status,
+        authorId: id,
+      },
+    });
 
-  if (!existingPost) {
-    throw new CustomNotFoundError(`Post with ID ${postId} not found`);
-  }
+    res.status(201).json({
+      message: "Post created successfully",
+      post,
+    });
+  },
+];
 
-  if (existingPost.authorId !== id) {
-    throw new CustomForbiddenError("You are forbidden from updating this post");
-  }
+const updatePostById = [
+  validate.post,
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const { id } = req.user;
+    const { postId } = req.params;
+    const { status } = req.body;
+    const { title, content } = matchedData(req);
 
-  const post = await prisma.post.update({
-    where: { id: Number(postId) },
-    data: { title, content, status },
-  });
+    const existingPost = await prisma.post.findUnique({
+      where: {
+        id: Number(postId),
+      },
+    });
 
-  res.json({ message: "Post update Successfully", post });
-};
+    if (!existingPost) {
+      throw new CustomNotFoundError(`Post with ID ${postId} not found`);
+    }
+
+    if (existingPost.authorId !== id) {
+      throw new CustomForbiddenError(
+        "You are forbidden from updating this post",
+      );
+    }
+
+    const post = await prisma.post.update({
+      where: { id: Number(postId) },
+      data: { title, content, status },
+    });
+
+    res.json({ message: "Post update Successfully", post });
+  },
+];
 
 const deletePostById = async (req, res) => {
   const { postId } = req.params;
@@ -217,6 +273,7 @@ const deleteCommentOnPost = async (req, res) => {
 module.exports = {
   getPosts,
   getPostById,
+  getAuthorPosts,
   getCommentsByPostId,
   deletePostById,
   createNewPost,
