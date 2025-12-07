@@ -5,6 +5,13 @@ const controller = require("../controllers/posts.controller");
 const postsRouter = new Router();
 
 postsRouter.get("/", controller.getPosts);
+
+postsRouter.get(
+  "/author",
+  passport.authenticate("jwt", { session: false }),
+  controller.getAuthorPosts,
+);
+
 postsRouter.get("/:postId", controller.getPostById);
 postsRouter.get("/:postId/comments", controller.getCommentsByPostId);
 
