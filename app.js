@@ -6,7 +6,9 @@ require("dotenv").config();
 
 const app = express();
 
-const corsOptions = { origin: "http://localhost:5173" };
+const corsOptions = {
+  origin: [process.env.FRONTEND_1_URL, process.env.FRONTEND_2_URL],
+};
 
 app.use(cors(corsOptions));
 app.use(json());
@@ -16,9 +18,9 @@ app.use("/api/v1/posts", routes.posts);
 app.use("/api/v1/users", routes.users);
 app.use("/api/v1/accounts", routes.accounts);
 
-app.use((err, req, res, _next) => {
+app.use((err, _req, res, _next) => {
   console.error(err);
-  res.status(err.statusCode || 500).send(err.message);
+  res.status(err.statusCode || 500).json({ msg: err.message });
 });
 
 const PORT = process.env.PORT || 3000;
