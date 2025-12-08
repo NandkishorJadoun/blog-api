@@ -10,9 +10,6 @@ A robust Node.js RESTful API for blog management, supporting user authentication
 - [Validation & Error Handling](#validation--error-handling)
 - [Environment Variables](#environment-variables)
 - [Setup & Run](#setup--run)
-- [Linting](#linting)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Features
 
@@ -127,7 +124,7 @@ All environment variables should be defined in your `.env` file (not included in
    ```
 
 2. **Configure Environment:**
-   - Copy `.env.example` to `.env` and set required variables.
+   - Add `.env` file and set required variables.
 
 3. **Setup Prisma:**
    ```sh
@@ -137,27 +134,8 @@ All environment variables should be defined in your `.env` file (not included in
 
 4. **Start Server:**
    ```sh
-   npm start
+   node --watch app.js
    ```
-
-## Linting
-
-- Uses ESLint (`eslint.config.mjs`) with recommended rules:
-  ```sh
-  npx eslint .
-  ```
-
-## Contributing
-
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature-branch`).
-3. Commit your changes (`git commit -am 'Add feature'`).
-4. Push to your branch (`git push origin feature-branch`).
-5. Create a new Pull Request.
-
-## License
-
-This project is licensed under the MIT License.
 
 ---
 
