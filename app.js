@@ -8,6 +8,7 @@ const app = express();
 
 const corsOptions = {
   origin: [process.env.FRONTEND_1_URL, process.env.FRONTEND_2_URL],
+  credentials: true,
 };
 
 app.use(cors(corsOptions));
