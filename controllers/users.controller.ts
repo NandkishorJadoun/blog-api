@@ -1,7 +1,9 @@
-const prisma = require("../configs/prisma");
-const CustomNotFoundError = require("../errors/CustomNotFoundError");
+import prisma from "../configs/prisma.js";
+import CustomNotFoundError from "../errors/CustomNotFoundError.js";
+import type { Request, Response } from "express";
 
-const getUserById = async (req, res) => {
+
+const getUserById = async (req: Request, res: Response) => {
   const { id } = req.params;
   const user = await prisma.user.findUnique({
     where: {
@@ -19,10 +21,10 @@ const getUserById = async (req, res) => {
     throw new CustomNotFoundError(`User with ID ${id} not found`);
   }
 
-  res.json({ message: "Fetched User Successfully", data: user });
+  res.status(200).json({ message: "Fetched User Successfully", data: user });
 };
 
-const getUserPosts = async (req, res) => {
+const getUserPosts = async (req: Request, res: Response) => {
   const { id } = req.params;
   const user = await prisma.user.findUnique({
     where: { id: Number(id) },
@@ -40,13 +42,13 @@ const getUserPosts = async (req, res) => {
     throw new CustomNotFoundError(`User with ID ${id} not found`);
   }
 
-  res.json({
+  res.status(200).json({
     message: "Fetched User Posts Successfully",
     data: user.posts,
   });
 };
 
-const getUserComments = async (req, res) => {
+const getUserComments = async (req: Request, res: Response) => {
   const { id } = req.params;
   const user = await prisma.user.findUnique({
     where: { id: Number(id) },
@@ -71,10 +73,10 @@ const getUserComments = async (req, res) => {
     throw new CustomNotFoundError(`User with ID ${id} not found`);
   }
 
-  res.json({
+  res.status(200).json({
     message: "Fetched User Comments Successfully",
     data: user.comments,
   });
 };
 
-module.exports = { getUserById, getUserPosts, getUserComments };
+export default { getUserById, getUserPosts, getUserComments };

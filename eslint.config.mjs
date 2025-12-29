@@ -12,5 +12,5 @@ export default defineConfig([
       "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
-  { files: ["**/*.js"], languageOptions: { sourceType: "commonjs" } },
+  { files: ["**/*.js"], languageOptions: { sourceType: "module" } },
 ]);

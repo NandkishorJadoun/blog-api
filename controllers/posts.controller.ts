@@ -1,6 +1,7 @@
 import prisma from "../configs/prisma.js";
 import CustomForbiddenError from "../errors/CustomForbiddenError.js";
 import CustomNotFoundError from "../errors/CustomNotFoundError.js";
+import CustomUnauthorizedError from "../errors/CustomUnauthorizedError.js";
 import { validationResult, matchedData } from "express-validator";
 import type { Request, Response } from "express";
 
@@ -77,7 +78,12 @@ const getCommentsByPostId = async (req: Request, res: Response) => {
 };
 
 const getAuthorPosts = async (req: Request, res: Response) => {
-  const { id } = req.user!;
+
+  if (!req.user) {
+    throw new CustomUnauthorizedError("Unauthorized!")
+  }
+
+  const { id } = req.user;
 
   const { type } = req.query;
 
@@ -106,7 +112,12 @@ const createNewPost = async (req: Request, res: Response) => {
   }
   const { title, content } = matchedData(req);
   const { status } = req.body;
-  const { id } = req.user!;
+
+  if (!req.user) {
+    throw new CustomUnauthorizedError("Unauthorized!")
+  }
+
+  const { id } = req.user;
 
   const post = await prisma.post.create({
     data: {
@@ -128,7 +139,11 @@ const updatePostById = async (req: Request, res: Response) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-  const { id } = req.user!;
+
+  if (!req.user) {
+    throw new CustomUnauthorizedError("Unauthorized!")
+  }
+  const { id } = req.user;
   const { postId } = req.params;
   const { status } = req.body;
   const { title, content } = matchedData(req);
@@ -159,7 +174,12 @@ const updatePostById = async (req: Request, res: Response) => {
 
 const deletePostById = async (req: Request, res: Response) => {
   const { postId } = req.params;
-  const { id } = req.user!;
+
+  if (!req.user) {
+    throw new CustomUnauthorizedError("Unauthorized!")
+  }
+
+  const { id } = req.user;
 
   const existingPost = await prisma.post.findUnique({
     where: {
@@ -189,7 +209,12 @@ const createNewComment = async (req: Request, res: Response) => {
     });
   }
   const { postId } = req.params;
-  const { id } = req.user!;
+
+  if (!req.user) {
+    throw new CustomUnauthorizedError("Unauthorized!")
+  }
+
+  const { id } = req.user;
   const { content } = matchedData(req);
   const comment = await prisma.comment.create({
     data: {
@@ -205,7 +230,12 @@ const createNewComment = async (req: Request, res: Response) => {
 const updateCommentOnPost = async (req: Request, res: Response) => {
   const { postId, commentId } = req.params;
   const { content } = req.body;
-  const { id } = req.user!;
+
+  if (!req.user) {
+    throw new CustomUnauthorizedError("Unauthorized!")
+  }
+
+  const { id } = req.user;
 
   const existingComment = await prisma.comment.findUnique({
     where: { id: Number(commentId) },
@@ -234,7 +264,12 @@ const updateCommentOnPost = async (req: Request, res: Response) => {
 
 const deleteCommentOnPost = async (req: Request, res: Response) => {
   const { postId, commentId } = req.params;
-  const { id } = req.user!;
+
+  if (!req.user) {
+    throw new CustomUnauthorizedError("Unauthorized!")
+  }
+
+  const { id } = req.user;
 
   const existingComment = await prisma.comment.findUnique({
     where: { id: Number(commentId) },

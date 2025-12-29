@@ -1,11 +1,11 @@
-const { body } = require("express-validator");
-const prisma = require("../configs/prisma");
+import { body } from "express-validator";
+import prisma from "../configs/prisma.js";
 
 const alphaErr = "must only contain letters.";
 const lengthErr = "must be between 1 and 10 characters.";
 const emptyErr = "shouldn't be empty.";
 
-const signUp = [
+export const validateSignUp = [
   body("firstName")
     .trim()
     .notEmpty()
@@ -48,7 +48,7 @@ const signUp = [
   }),
 ];
 
-const comment = [
+export const validateComment = [
   body("content")
     .trim()
     .notEmpty()
@@ -57,7 +57,7 @@ const comment = [
     .withMessage("Comment must be within 1000 character."),
 ];
 
-const post = [
+export const validatePost = [
   body("title")
     .trim()
     .notEmpty()
@@ -83,9 +83,3 @@ const post = [
     return true;
   }),
 ];
-
-module.exports = {
-  signUp,
-  comment,
-  post,
-};
